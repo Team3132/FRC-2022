@@ -1,0 +1,72 @@
+import org.gradle.internal.os.OperatingSystem
+
+pluginManagement {
+    repositories {
+        mavenLocal()
+        gradlePluginPortal()
+        String frcYear = '2023'
+        File frcHome
+        if (OperatingSystem.current().isWindows()) {
+            String publicFolder = System.getenv('PUBLIC')
+            if (publicFolder == null) {
+                publicFolder = 'C:\\Users\\Public'
+            }
+            def homeRoot = new File(publicFolder, 'wpilib')
+            frcHome = new File(homeRoot, frcYear)
+        } else {
+            def userFolder = System.getProperty('user.home')
+            def homeRoot = new File(userFolder, 'wpilib')
+            frcHome = new File(homeRoot, frcYear)
+        }
+        def frcHomeMaven = new File(frcHome, 'maven')
+        maven {
+            name 'frcHome'
+            url frcHomeMaven
+        }
+    }
+}
+
+plugins {
+    id 'com.gradle.enterprise' version  '3.7'
+}
+
+gradleEnterprise {
+    buildScan {
+        // Publish build scans after build or test for sharing or to look over later.
+        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+        termsOfServiceAgree = 'yes'
+        publishAlwaysIf(gradle.startParameter.taskNames.contains("build") || gradle.startParameter.taskNames.contains("test"))
+
+        // Run git commands in the background to add useful information to the build scan.
+        background {
+            // Git commit id
+            def repoUrl = 'git remote get-url origin'.execute().text.trim() - ~/\.git$/
+            def commitId = 'git rev-parse --verify HEAD'.execute().text.trim()
+            if (commitId) {
+                buildScan.value 'Git Commit ID', commitId
+                buildScan.link 'Source', "$repoUrl/tree/$commitId"
+            }
+
+            // Git branch name
+            def branchName = 'git rev-parse --abbrev-ref HEAD'.execute().text.trim()
+            if (branchName) {
+                buildScan.value 'Git Branch Name', branchName
+            }
+
+            // Git dirty local state
+            def status = 'git status --porcelain'.execute().text
+            if (status) {
+                buildScan.tag 'dirty'
+                buildScan.value 'Git Status', status
+            }
+        }
+
+        // Hide the user's local IP, hostname and username from the buld scan.
+        // Warning: The full path to the project folder may be leaked in the build scan if tests fail.
+        obfuscation {
+            username { name -> "user" }
+            hostname { host -> "localhost" }
+            ipAddresses { addresses -> addresses.collect { address -> "0.0.0.0"} }
+        }
+    }
+}

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+  <head>
+    <title>Config Server</title>
+  </head>
+  <p>Edit the config here and press save to update it on the robot.</p>
+  <p>Robot config is on the left, example config is on the right.</p>
+  <form id="config" method="post">
+    <textarea name="config" rows=30 cols=60>${CONFIG}</textarea>
+    <textarea name="example-config" rows=30 cols=60 readonly>${EXAMPLE_CONFIG}</textarea>
+    <br>
+    <label for="name">Robot Name:</label>
+    <textarea name="name" id="name">${ROBOT_NAME}</textarea><br>
+    <input type="checkbox" id="restart" name="restart" value="restart" checked>
+    <label for="restart">Restart robot code after saving config?</label><br>
+    <input type="submit" value="Save Config">
+  </form>
+</html>

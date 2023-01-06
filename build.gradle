@@ -1,0 +1,170 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+    id 'java'
+    id 'edu.wpi.first.GradleRIO' version '2023.1.1'
+    id 'com.diffplug.spotless' version '6.12.1'
+    id 'com.github.ben-manes.versions' version '0.44.0'
+    id 'se.patrikerdes.use-latest-versions' version '0.2.18'
+    id 'com.adarshr.test-logger' version '3.0.0'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
+
+def ROBOT_MAIN_CLASS = 'frc.robot.Main'
+
+// Define my targets (RoboRIO) and artifacts (deployable files)
+// This is added by GradleRIO's backing project DeployUtils.
+deploy {
+    targets {
+        roborio(getTargetTypeClass('RoboRIO')) {
+            // Team number is loaded either from the .wpilib/wpilib_preferences.json
+            // or from command line. If not found an exception will be thrown.
+            // You can use getTeamOrDefault(team) instead of getTeamNumber if you
+            // want to store a team number in this file.
+            team = project.frc.getTeamNumber()
+            debug = project.frc.getDebugOrDefault(false)
+
+            artifacts {
+                // First part is artifact name, 2nd is artifact type
+                // getTargetTypeClass is a shortcut to get the class type using a string
+
+                frcJava(getArtifactTypeClass('FRCJavaArtifact')) {
+                }
+
+                // Static files artifact
+                frcStaticFileDeploy(getArtifactTypeClass('FileTreeArtifact')) {
+                    files = project.fileTree('src/main/deploy')
+                    directory = '/home/lvuser/deploy'
+                }
+            }
+        }
+    }
+}
+
+def deployArtifact = deploy.targets.roborio.artifacts.frcJava
+
+// Set to true to use debug for JNI.
+wpi.java.debugJni = false
+
+// Set this to true to enable desktop support.
+def includeDesktopSupport = true
+
+// Defining dependencies. In this case, WPILib, vendor libraries and testing libraries.
+dependencies {
+    implementation wpi.java.deps.wpilib()
+    implementation wpi.java.vendor.java()
+
+    roborioDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.roborio)
+    roborioDebug wpi.java.vendor.jniDebug(wpi.platforms.roborio)
+
+    roborioRelease wpi.java.deps.wpilibJniRelease(wpi.platforms.roborio)
+    roborioRelease wpi.java.vendor.jniRelease(wpi.platforms.roborio)
+
+    nativeDebug wpi.java.deps.wpilibJniDebug(wpi.platforms.desktop)
+    nativeDebug wpi.java.vendor.jniDebug(wpi.platforms.desktop)
+    simulationDebug wpi.sim.enableDebug()
+
+    nativeRelease wpi.java.deps.wpilibJniRelease(wpi.platforms.desktop)
+    nativeRelease wpi.java.vendor.jniRelease(wpi.platforms.desktop)
+    simulationRelease wpi.sim.enableRelease()
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.9.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.1'
+    
+    // For talking to the JeVois over the USB connection.
+    implementation 'com.fazecast:jSerialComm:2.9.3'
+
+    // For encoding and decoding html text as part of config server.
+    implementation 'org.apache.commons:commons-text:1.10.0'
+    implementation 'commons-io:commons-io:2.11.0'
+    
+    implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+
+    /* For Strongback*/
+    // https://mvnrepository.com/artifact/com.codahale.metrics/metrics-core
+    implementation group: 'com.codahale.metrics', name: 'metrics-core', version: '3.0.2'
+}
+
+test {
+    useJUnitPlatform()
+    systemProperty 'junit.jupiter.extensions.autodetection.enabled', 'true'
+    testLogging {
+        // https://docs.gradle.org/6.9/userguide/performance.html#suggestions_for_java_projects
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+    }
+}
+
+// Information on how to configure at https://github.com/radarsh/gradle-test-logger-plugin
+testlogger {
+    theme 'standard-parallel'
+    showFullStackTraces true
+    showPassedStandardStreams false
+}
+
+// Simulation configuration (e.g. environment variables).
+wpi.sim.addGui().defaultEnabled = true
+wpi.sim.addDriverstation()
+
+// Setting up my Jar File. In this case, adding all libraries into the main jar ('fat jar')
+// in order to make them all available at runtime. Also adding the manifest so WPILib
+// knows where to look for our Robot Class.
+jar {
+    from { configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+    manifest edu.wpi.first.gradlerio.GradleRIOPlugin.javaManifest(ROBOT_MAIN_CLASS)
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+// Configure jar and deploy tasks
+deployArtifact.jarTask = jar
+wpi.java.configureExecutableTasks(jar)
+wpi.java.configureTestTasks(test)
+
+// Configure string concat to always inline compile
+tasks.withType(JavaCompile) {
+    options.compilerArgs.add '-XDstringConcat=inline'
+}
+
+// Keep Spotless to validate formatting on build/PR
+spotless {
+    ratchetFrom 'origin/master'
+    java {
+        importOrder()
+        removeUnusedImports()
+        eclipse().configFile('.vscode/java-formatter-settings.xml')
+    }
+}
+
+// The following task exists to stop crashes at runtime trying to access missing/mistyped
+// pathweaver files. It will generate a class containing public strings for all of the
+// files in the pathweaver output directory. These public strings are to be used with
+// driveRelativeWaypoints(pathname) in Auto.java instead of directly referring to the
+// pathweaver files.
+task generateAutoPaths(type: Copy) {
+    group 'Build'
+    description 'Generates AutoPaths class containing a string for each pathweaver file in the deploy folder.'
+
+    from 'src/template/java'
+
+    def files =  fileTree('src/main/deploy/pathweaver/output').filter { it.isFile() }.files.name.sort()
+
+    def replace = '\n'
+    for (file in files) {
+        def camelCaseName = file.split('\\.')[0].replaceAll('(_)([A-Za-z0-9])', { it[2].toUpperCase() }).capitalize()
+        replace += '    public static final String k' + camelCaseName + ' = "' + file + '";\n'
+    }
+
+    filter(ReplaceTokens, tokens: [GradleToken: replace])
+    into 'src/main/java'
+}
+
+sourceSets.main.java.srcDir  "$buildDir/generated/java"
+
+spotlessJava.dependsOn generateAutoPaths
+compileJava.dependsOn generateAutoPaths

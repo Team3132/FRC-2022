@@ -1,0 +1,1 @@
+Copyright 2015-2017, Strongback and individual contributors identified by the @authors tags and in the CONTRIBUTORS file.

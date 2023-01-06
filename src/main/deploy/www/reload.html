@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+	<head>
+		<title>Config Server - Reloading</title>
+		<style>
+			div {
+				text-align: center;
+				padding: 15%;
+				font-size: xx-large;
+			}
+			progress[value] {
+				/* Reset the default appearance */
+				-webkit-appearance: none;
+				appearance: none;
+				width: 300px;
+				height: 40px;
+			}
+			progress[value]::-webkit-progress-value {
+				background-image:
+					 -webkit-linear-gradient(-45deg, 
+																	 transparent 33%, rgba(0, 0, 0, .1) 33%, 
+																	 rgba(0,0, 0, .1) 66%, transparent 66%),
+					 -webkit-linear-gradient(top, 
+																	 rgba(255, 255, 255, .25), 
+																	 rgba(0, 0, 0, .25)),
+					 -webkit-linear-gradient(left, #FEFE69, #57E86B);
+ 
+					background-size: 75px 40px, 100% 100%, 100% 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<div>
+			<p>The robot is currently restarting.</p>
+			<p id="countdown">7 seconds remaining.</p>
+			<progress value="0" max="7" id="progressBar"></progress>
+		</div>
+		<script>
+			var timeLeft = 6
+			function runCountdown() {
+				if (timeLeft < 0) {
+					location.href = location.href;
+				} else if(timeLeft == 0) {
+					document.getElementById("countdown").innerHTML = "Finished!";
+				} else {
+					document.getElementById("countdown").innerHTML = timeLeft + " second(s) remaining.";
+				}
+				document.getElementById("progressBar").value = 7 - timeLeft;
+				timeLeft -= 1;
+			}
+			var countdown = setInterval( function() { runCountdown(); }, 1000)
+		</script>
+	</body>
+</html>

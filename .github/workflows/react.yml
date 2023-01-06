@@ -1,0 +1,46 @@
+name: Livelogs CI
+
+on:
+  pull_request:
+    paths:
+      - src/main/livelogs/**
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: actions/cache@v2
+        with:
+          path: src/main/livelogs/node_modules
+          key: ${{ runner.os }}-nodemodules-${{ hashFiles('**/*.package.json*') }}
+          restore-keys: |
+            ${{ runner.os }}-nodemodules-
+      - name: Install Packages
+        run: yarn install
+        working-directory: src/main/livelogs
+      - name: Build Project
+        run: yarn build
+        working-directory: src/main/livelogs
+      - name: Clear Previous Version
+        run: rm -rf src/main/www/livelogging/*
+      - name: Move Build Result
+        run: mv build/* ../www/livelogging/
+        working-directory: src/main/livelogs
+      - name: Push Changes
+        continue-on-error: true
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "generated"
+          git push

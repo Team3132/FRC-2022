@@ -1,0 +1,27 @@
+# Demo configuration script for FirstPython module.
+# Copy this into the Config tab, after clicking 'Module's script.cfg'
+# Set camera to fixed color balance, gain, and exposure, so that we get more reliable colors than we would obtain under
+# automatic mode:
+setcam presetwb 0
+setcam autowb 0
+setcam autogain 0
+setcam autoexp 1
+setcam redbal 155
+setcam bluebal 155
+setcam gain 16
+setcam absexp 500
+setcam brightness -3
+setcam contrast 0
+setcam saturation 0
+setcam sharpness 8
+setcam absexp 30
+
+# Send info log messages to None, Hard, or USB serial port - useful for debugging:
+#setpar serlog None
+#setpar serlog Hard
+#setpar serlog USB
+
+# Send serial strings with detected objects to None, Hard, or USB serial port:
+#setpar serout None
+#setpar serout Hard
+#setpar serout USB

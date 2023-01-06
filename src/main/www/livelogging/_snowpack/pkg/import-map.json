@@ -1,0 +1,13 @@
+{
+  "imports": {
+    "@chakra-ui/icons": "./@chakra-ui/icons.js",
+    "@chakra-ui/react": "./@chakra-ui/react.js",
+    "lodash": "./lodash.js",
+    "react": "./react.js",
+    "react-dom": "./react-dom.js",
+    "react-router-dom": "./react-router-dom.js",
+    "react-use-websocket": "./react-use-websocket.js",
+    "react-virtuoso": "./react-virtuoso.js",
+    "usehooks-ts": "./usehooks-ts.js"
+  }
+}

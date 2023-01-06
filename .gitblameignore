@@ -1,0 +1,5 @@
+# This file can be used to hide large commits from git blame.
+# To enable this file, run `git config blame.ignoreRevsFile .gitblameignore` (make sure your working directory is this repository!)
+
+# format everything (sorry) (#135)
+3b206893b65aa6978a6490bc0a7b711ec6df20dc
