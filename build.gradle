@@ -133,7 +133,7 @@ tasks.withType(JavaCompile) {
 
 // Keep Spotless to validate formatting on build/PR
 spotless {
-    ratchetFrom 'origin/master'
+    ratchetFrom 'origin/main'
     java {
         importOrder()
         removeUnusedImports()
